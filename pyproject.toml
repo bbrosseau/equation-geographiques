@@ -1,0 +1,27 @@
+[project]
+name = "mireille-tuto"
+version = "0.1.0"
+description = "Application interactive pour apprendre l'algèbre et le ML : carte du monde"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.3",
+    "pyside6>=6.11.2",
+    "shapely>=2.1.2",
+]
+
+[project.scripts]
+mireille-tuto = "mireille_tuto:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+link-mode = "copy"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

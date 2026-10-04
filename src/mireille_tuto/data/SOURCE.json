@@ -1,0 +1,18 @@
+{
+  "dataset": "Natural Earth — Admin 0 Countries",
+  "repository": "https://github.com/nvkelso/natural-earth-vector",
+  "ref": "master",
+  "commit": "ca96624a56bd078437bca8184e78163e5039ad19",
+  "version": "5.2.0-pre",
+  "downloaded_at": "2026-10-04T00:03:01+00:00",
+  "files": {
+    "ne_50m_admin_0_countries.geojson": {
+      "scale": "1:50m",
+      "countries": 242
+    },
+    "ne_110m_admin_0_countries.geojson": {
+      "scale": "1:110m",
+      "countries": 177
+    }
+  }
+}
