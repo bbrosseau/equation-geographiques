@@ -36,21 +36,27 @@ uv sync
 ```powershell
 uv run mireille-tuto            # frontières détaillées (1:50m)
 uv run mireille-tuto --simple   # frontières simplifiées (1:110m)
-uv run mireille-tuto --pays FRA # pays centré au démarrage et cible de l'échantillon (défaut : JPN)
+uv run mireille-tuto --pays FRA # présélectionne un pays au démarrage
 ```
 
-## Utilisation de la carte
+## Utilisation
+
+L'application démarre sur la carte du monde et se déroule en deux étapes :
+
+1. **Choisir un pays** : clique sur un pays pour le mettre en évidence, puis sur « Passer au mode Algèbre ».
+2. **Mode Algèbre** : la vue se centre sur le pays, qui devient la cible de l'échantillon, des
+   inéquations et de l'apprentissage ML. Un clic sur la carte y ajoute un point manuel.
+   « Changer de pays » ramène à l'étape 1 : l'échantillon et le modèle sont effacés,
+   les points manuels sont conservés.
 
 | Action | Effet |
 | --- | --- |
-| Clic (mode « Sélectionner ») | Met en évidence les frontières du pays et affiche ses infos |
+| Clic (étape 1) | Met en évidence les frontières du pays et affiche ses infos |
+| Clic (mode Algèbre) | Ajoute un point avec le nom du pays et ses coordonnées |
 | Double-clic | Centre la vue sur le pays sélectionné |
-| Clic (mode « Ajouter des points ») | Ajoute un point avec le nom du pays et ses coordonnées |
 | Molette | Zoom autour du curseur |
-| « Échantillonner la vue » (`E`) | Tire N points additionnels au hasard dans la vue (s'accumulent à l'échantillon existant) et les marque d'un ✕ coloré : eau, pays cible, autre pays |
-| « Effacer l'échantillon » | Réinitialise l'échantillon visible pour repartir à zéro |
-| `S` / `P` | Passer en mode sélection / ajout de points |
-| `Échap` / `Origine` | Désélectionner / revenir à la vue du monde |
+| « Échantillonner » (`E`, mode Algèbre) | Tire N points additionnels au hasard dans la vue (s'accumulent à l'échantillon existant) et les marque d'un ✕ coloré : eau, pays cible, autre pays |
+| `Échap` / `Origine` | Désélectionner (étape 1) / revenir à la vue du monde |
 
 La barre matplotlib au-dessus de la carte permet aussi de se déplacer (main), de zoomer sur
 un rectangle, de revenir en arrière et d'enregistrer une image.
@@ -75,7 +81,7 @@ scripts/
 tests/
 ```
 
-## Atelier Algèbre & Apprentissage ML
+## Atelier Algèbre & Apprentissage Machine
 
 L'application comprend un atelier latéral en trois onglets :
 

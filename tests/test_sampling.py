@@ -19,10 +19,27 @@ def test_label_points(atlas):
     assert sample.class_names == ("eau", "japon", "autre pays")
 
 
-def test_sample_uniform_stays_in_bounds_and_on_globe():
+def test_sample_uniform_crosses_antimeridian_but_not_poles():
     lons, lats = sample_uniform((170.0, -95.0, 200.0, 10.0), 1000, np.random.default_rng(0))
-    assert lons.min() >= 170.0 and lons.max() <= 180.0
+    assert lons.min() >= 170.0 and lons.max() <= 200.0 and lons.max() > 180.0
     assert lats.min() >= -90.0 and lats.max() <= 10.0
+
+
+def test_points_beyond_antimeridian_are_labeled(atlas):
+    fiji = atlas.by_code("FJI")
+    lon, lat = fiji.center
+    assert atlas.country_at(lon + 360.0, lat) is fiji
+    assert atlas.country_at(lon - 360.0, lat) is fiji
+
+
+@pytest.mark.parametrize("code", ["NZL", "FJI", "RUS", "USA"])
+def test_lon_extent_of_countries_crossing_antimeridian(atlas, code):
+    country = atlas.by_code(code)
+    west, east = country.lon_extent
+    assert east - west < 200.0
+    assert west <= country.center[0] <= east
+    sample = sample_view(atlas, country.view_bounds, 3000, country, np.random.default_rng(1))
+    assert np.sum(sample.labels == TARGET) > 0
 
 
 def test_sample_view_around_japan(atlas):

@@ -52,10 +52,13 @@ class LabeledSample:
 def sample_uniform(
     bounds: tuple[float, float, float, float], n: int, rng: np.random.Generator | None = None
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Tire n points uniformément dans (min_lon, min_lat, max_lon, max_lat), limité au globe."""
+    """Tire n points uniformément dans (min_lon, min_lat, max_lon, max_lat).
+
+    Les longitudes ne sont pas bornées (la carte se répète au-delà de ±180°) ; les latitudes
+    restent limitées aux pôles.
+    """
     rng = rng or np.random.default_rng()
     min_lon, min_lat, max_lon, max_lat = bounds
-    min_lon, max_lon = max(min_lon, -180.0), min(max_lon, 180.0)
     min_lat, max_lat = max(min_lat, -90.0), min(max_lat, 90.0)
     return rng.uniform(min_lon, max_lon, n), rng.uniform(min_lat, max_lat, n)
 

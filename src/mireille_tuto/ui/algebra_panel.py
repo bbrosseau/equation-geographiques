@@ -118,7 +118,7 @@ class AlgebraPanel(QWidget):
 
         self.tabs = QTabWidget(self)
         self.tabs.addTab(self.formula_widget, "Inéquations")
-        self.tabs.addTab(self.ml_widget, "Apprentissage ML")
+        self.tabs.addTab(self.ml_widget, "Apprentissage Machine")
         layout.addWidget(self.tabs)
 
         self._update_coord_hint()
@@ -486,7 +486,7 @@ class AlgebraPanel(QWidget):
         params_layout.addLayout(speed_row)
 
         self.balance_check = QCheckBox("Pondérer les classes (Eau vs Pays)", params_box)
-        self.balance_check.setChecked(True)
+        self.balance_check.setChecked(False)
         self.balance_check.toggled.connect(self._reset_trainer)
         params_layout.addWidget(self.balance_check)
 

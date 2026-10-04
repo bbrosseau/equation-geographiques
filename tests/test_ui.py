@@ -13,22 +13,36 @@ from mireille_tuto.ui import MainWindow
 @pytest.fixture(scope="module")
 def window():
     app = QApplication.instance() or QApplication([])
-    win = MainWindow(CountryAtlas.load(DATASET_110M))
+    win = MainWindow(CountryAtlas.load(DATASET_110M), focus_code="JPN")
     win.show()
     yield win
     win.close()
     app.processEvents()
 
 
-def test_starts_centered_on_japan(window):
+def enter_algebra(window):
+    """Choisit le pays de départ (Japon) et passe au mode Algèbre."""
+    if window.in_algebra_mode and window.map.selected is window.focus_country:
+        return
+    if window.in_algebra_mode:
+        window.leave_algebra_mode()
+    window.map.select_country(window.focus_country)
+    window.enter_algebra_button.click()
+    assert window.in_algebra_mode
+
+
+def test_starts_with_whole_world(window):
     min_lon, min_lat, max_lon, max_lat = window.map.visible_bounds()
-    lon, lat = window.focus_country.center
-    assert min_lon < lon < max_lon and min_lat < lat < max_lat
-    assert max_lon - min_lon < 90
+    assert min_lon <= -179 and max_lon >= 179
+    assert min_lat <= -89 and max_lat >= 89
     assert window.sample_size.value() == 1000
+    assert not window.in_algebra_mode
+    assert window.map.selected is window.focus_country
+    assert window.enter_algebra_button.isEnabled()
 
 
 def test_sample_view_updates_panel(window):
+    enter_algebra(window)
     sample = window.map.sample_view(300, window.focus_country)
     assert len(sample) == 300
     assert "japon" in window.sample_info.text()
@@ -42,10 +56,65 @@ def test_sample_view_updates_panel(window):
 
 
 def test_select_country_updates_panel(window):
+    if window.in_algebra_mode:
+        window.leave_algebra_mode()
     canada = window.map.atlas.country_at(-100, 60)
     window.map.select_country(canada)
     assert "Canada" in window.country_info.text()
     assert window.zoom_button.isEnabled()
+    assert window.enter_algebra_button.isEnabled()
+
+    window.map.select_country(None)
+    assert not window.enter_algebra_button.isEnabled()
+    window.enter_algebra_mode()
+    assert not window.in_algebra_mode
+
+
+def test_algebra_mode_flow_keeps_manual_points(window):
+    from mireille_tuto.ui.map_canvas import MapMode
+
+    window.map.clear_points()
+    enter_algebra(window)
+    assert window.map.mode is MapMode.ADD_POINT
+    assert window.focus_country.name in window.algebra_title.text()
+    bounds = window.map.visible_bounds()
+    min_lon, min_lat, max_lon, max_lat = bounds
+    assert max_lon - min_lon < 90
+
+    # La vue est verrouillée en mode Algèbre
+    assert window.map.view_locked
+    assert not window.map.toolbar.isEnabled()
+    window.map.reset_view()
+    window.map.zoom_to(window.map.atlas.by_code("CAN"))
+    assert window.map.visible_bounds() == pytest.approx(bounds)
+
+    # Les graduations suivent le repère choisi (fenêtre [-1, 1] par défaut)
+    assert window.map.coord_frame == "window"
+    x0, y0, x1, y1 = window.map.visible_bounds()
+    fmt_x = window.map.ax.xaxis.get_major_formatter()
+    assert fmt_x(x0, 0) == "-1" and fmt_x((x0 + x1) / 2, 0) == "0" and fmt_x(x1, 0) == "1"
+    window.algebra_panel.coord_combo.setCurrentIndex(2)  # centré sur le pays
+    assert window.map.coord_frame == "centered"
+    assert window.map.ax.xaxis.get_major_formatter()(window.focus_country.center[0], 0) == "0°"
+    window.algebra_panel.coord_combo.setCurrentIndex(0)
+
+    window.map.add_point(139.69, 35.69)
+    window.sample_action.trigger()
+    assert window.map.sample is not None
+
+    window.leave_algebra_mode()
+    assert not window.in_algebra_mode
+    assert window.map.mode is MapMode.SELECT
+    assert not window.map.view_locked
+    assert window.map.toolbar.isEnabled()
+    assert window.map.coord_frame is None
+    assert window.map.sample is None
+    assert len(window.map.points) == 1
+    assert window.algebra_panel.trainer is None or window.algebra_panel.trainer.epoch == 0
+
+    window.sample_action.trigger()
+    assert window.map.sample is None
+    window.map.clear_points()
 
 
 def test_add_and_remove_points(window):
@@ -62,6 +131,7 @@ def test_add_and_remove_points(window):
 
 
 def test_algebra_panel_formula(window):
+    enter_algebra(window)
     panel = window.algebra_panel
     panel.formula_input.setText("y > 0.5*x - 1")
     panel._apply_formula()
@@ -73,6 +143,7 @@ def test_algebra_panel_formula(window):
 
 
 def test_algebra_panel_ml_solve(window):
+    enter_algebra(window)
     window.map.sample_view(400, window.focus_country)
     panel = window.algebra_panel
 
@@ -85,6 +156,7 @@ def test_algebra_panel_ml_solve(window):
 
 
 def test_algebra_panel_coordinate_modes(window):
+    enter_algebra(window)
     panel = window.algebra_panel
 
     # 1. Switch to GEO mode
@@ -107,6 +179,7 @@ def test_algebra_panel_coordinate_modes(window):
 
 
 def test_algebra_panel_ml_union_manual_and_sample(window):
+    enter_algebra(window)
     panel = window.algebra_panel
     window.map.clear_sample()
     window.map.clear_points()
@@ -143,6 +216,7 @@ def test_algebra_panel_ml_union_manual_and_sample(window):
 
 
 def test_algebra_panel_neurons_selector(window):
+    enter_algebra(window)
     panel = window.algebra_panel
     window.map.sample_view(100, window.focus_country)
 
@@ -183,6 +257,7 @@ def test_window_icon(window):
 
 
 def test_sample_view_accumulates_additional_points(window):
+    enter_algebra(window)
     window.map.clear_sample()
     assert window.map.sample is None
 
@@ -201,6 +276,7 @@ def test_sample_view_accumulates_additional_points(window):
 
 
 def test_pause_resume_change_lr_and_max_epochs(window):
+    enter_algebra(window)
     panel = window.algebra_panel
     panel._reset_trainer()
     window.map.clear_sample()
@@ -243,6 +319,7 @@ def test_pause_resume_change_lr_and_max_epochs(window):
 
 
 def test_epochs_per_tick_and_target_stop(window):
+    enter_algebra(window)
     panel = window.algebra_panel
     panel._reset_trainer()
     window.map.clear_sample()

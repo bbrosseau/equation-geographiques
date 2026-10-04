@@ -12,7 +12,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.figure import Figure
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import Formatter, FuncFormatter, Locator, MaxNLocator
 from PySide6.QtCore import Signal
 
 from mireille_tuto.geo import (
@@ -34,6 +34,7 @@ SELECTED_FILL = "#ffd166"
 SELECTED_EDGE = "#d62828"
 COUNTRY_PALETTE = ["#cfe8b0", "#f6e3a1", "#f3c5a8", "#d9c7ec", "#bfe3dc", "#f2bfcf", "#e6dcc3"]
 
+WORLD_COPIES = (-360.0, 0.0, 360.0)  # décalages en longitude : la carte se répète de part et d'autre de ±180°
 WORLD_XLIM = (-180.0, 180.0)
 WORLD_YLIM = (-90.0, 90.0)
 ZOOM_STEP = 1.25
@@ -48,8 +49,38 @@ class MapMode(Enum):
     ADD_POINT = "add_point"
 
 
+class WindowLocator(Locator):
+    """Graduations à -1, -0.75, …, 1 des limites visibles, recalculées à chaque dessin."""
+
+    def __call__(self):
+        lo, hi = self.axis.get_view_interval()
+        return lo + (np.linspace(-1.0, 1.0, 9) + 1.0) / 2.0 * (hi - lo)
+
+
+class WindowFormatter(Formatter):
+    def __call__(self, value, pos=None):
+        lo, hi = self.axis.get_view_interval()
+        return f"{round(2.0 * (value - lo) / (hi - lo) - 1.0, 2) + 0.0:g}"
+
+
+class OffsetLocator(MaxNLocator):
+    """Graduations rondes relativement à une origine (centre du pays)."""
+
+    def __init__(self, origin: float):
+        super().__init__(nbins=8, steps=[1, 2, 2.5, 5, 10])
+        self.origin = origin
+
+    def __call__(self):
+        lo, hi = self.axis.get_view_interval()
+        return self.tick_values(lo - self.origin, hi - self.origin) + self.origin
+
+
 def country_path(country: Country) -> Path:
     return Path.make_compound_path(*(Path(ring, closed=True) for ring in country.rings()))
+
+
+def shifted(path: Path, dlon: float) -> Path:
+    return Path(path.vertices + (dlon, 0.0), path.codes)
 
 
 class WorldMapCanvas(FigureCanvasQTAgg):
@@ -70,13 +101,16 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         self.points: list[MapPoint] = []
         self.selected: Country | None = None
         self.sample: LabeledSample | None = None
+        self.view_locked = False
+        self.coord_frame: str | None = None  # None = lon/lat ; sinon "window", "geo" ou "centered"
+        self.frame_center: tuple[float, float] = (0.0, 0.0)
 
         self._paths = {c.code: country_path(c) for c in atlas.countries}
         self._point_artists: list[tuple] = []
         self._sample_artists: list = []
         self._boundary_artists: list = []
         self._boundary_evaluator = None  # Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, bool]]
-        self._selected_patch: PathPatch | None = None
+        self._selected_patches: list[PathPatch] = []
 
         self.ax = self.figure.add_subplot()
         self._setup_axes()
@@ -85,7 +119,6 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         self.mpl_connect("button_press_event", self._on_click)
         self.mpl_connect("scroll_event", self._on_scroll)
         self.mpl_connect("motion_notify_event", self._on_motion)
-
     # ----- Dessin -----------------------------------------------------------
 
     def _setup_axes(self) -> None:
@@ -94,18 +127,61 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         ax.set_aspect("equal", adjustable="datalim")
         ax.set_xlim(*WORLD_XLIM)
         ax.set_ylim(*WORLD_YLIM)
-        ax.set_xticks(range(-180, 181, 30))
-        ax.set_yticks(range(-90, 91, 30))
-        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: format_lon(x, 0)))
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: format_lat(y, 0)))
         ax.tick_params(labelsize=8)
         ax.grid(True, color="white", linewidth=0.6, alpha=0.7)
         ax.set_axisbelow(False)
         ax.format_coord = lambda x, y: format_coords(x, y)
+        self._update_axis_ticks()
+
+    def set_coord_frame(self, frame: str | None, center: tuple[float, float] = (0.0, 0.0)) -> None:
+        """Choisit le repère des graduations : None (lon/lat du monde), "window", "geo" ou "centered"."""
+        self.coord_frame = frame
+        self.frame_center = center
+        self._update_axis_ticks()
+        self.draw_idle()
+
+    def frame_coords(self, lon: float, lat: float) -> tuple[float, float] | None:
+        """Coordonnées (x, y) du point dans le repère courant, ou None en lon/lat."""
+        if self.coord_frame == "window":
+            x0, y0, x1, y1 = self.visible_bounds()
+            return 2.0 * (lon - x0) / (x1 - x0) - 1.0, 2.0 * (lat - y0) / (y1 - y0) - 1.0
+        if self.coord_frame == "centered":
+            cx, cy = self.frame_center
+            return lon - cx, lat - cy
+        return None
+
+    def _update_axis_ticks(self) -> None:
+        ax = self.ax
+        if self.coord_frame is None:
+            ax.set_xticks(range(-180, 181, 30))
+            ax.set_yticks(range(-90, 91, 30))
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: format_lon(x, 0)))
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: format_lat(y, 0)))
+            return
+
+        if self.coord_frame == "window":
+            for axis in (ax.xaxis, ax.yaxis):
+                axis.set_major_locator(WindowLocator())
+                axis.set_major_formatter(WindowFormatter())
+        elif self.coord_frame == "centered":
+            cx, cy = self.frame_center
+            ax.xaxis.set_major_locator(OffsetLocator(cx))
+            ax.yaxis.set_major_locator(OffsetLocator(cy))
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x - cx:g}°"))
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y - cy:g}°"))
+        else:  # geo
+            ax.xaxis.set_major_locator(OffsetLocator(0.0))
+            ax.yaxis.set_major_locator(OffsetLocator(0.0))
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: format_lon(x, 0)))
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: format_lat(y, 0)))
 
     def _draw_countries(self) -> None:
-        patches = [PathPatch(self._paths[c.code]) for c in self.atlas.countries]
-        colors = [COUNTRY_PALETTE[(c.map_color - 1) % len(COUNTRY_PALETTE)] for c in self.atlas.countries]
+        patches = [
+            PathPatch(shifted(self._paths[c.code], dlon)) for dlon in WORLD_COPIES for c in self.atlas.countries
+        ]
+        colors = [
+            COUNTRY_PALETTE[(c.map_color - 1) % len(COUNTRY_PALETTE)] for _ in WORLD_COPIES for c in self.atlas.countries
+        ]
         collection = PatchCollection(
             patches, facecolors=colors, edgecolors=BORDER_COLOR, linewidths=0.4, zorder=2
         )
@@ -127,27 +203,42 @@ class WorldMapCanvas(FigureCanvasQTAgg):
     # ----- Sélection --------------------------------------------------------
 
     def select_country(self, country: Country | None) -> None:
-        if self._selected_patch is not None:
-            self._selected_patch.remove()
-            self._selected_patch = None
+        for patch in self._selected_patches:
+            patch.remove()
+        self._selected_patches.clear()
         self.selected = country
         if country is not None:
-            self._selected_patch = PathPatch(
-                self._paths[country.code],
-                facecolor=SELECTED_FILL, edgecolor=SELECTED_EDGE, linewidth=2.0, zorder=3,
-            )
-            self.ax.add_patch(self._selected_patch)
+            for dlon in WORLD_COPIES:
+                patch = PathPatch(
+                    shifted(self._paths[country.code], dlon),
+                    facecolor=SELECTED_FILL, edgecolor=SELECTED_EDGE, linewidth=2.0, zorder=3,
+                )
+                self.ax.add_patch(patch)
+                self._selected_patches.append(patch)
         self.draw_idle()
         self.countrySelected.emit(country)
 
     def zoom_to(self, country: Country, margin: float = 0.30) -> None:
-        minx, miny, maxx, maxy = country.geometry.bounds
+        if self.view_locked:
+            return
+        minx, miny, maxx, maxy = country.view_bounds
         dx = max(maxx - minx, 2.0) * margin
         dy = max(maxy - miny, 2.0) * margin
         self._set_view((minx - dx, maxx + dx), (miny - dy, maxy + dy))
 
     def reset_view(self) -> None:
+        if self.view_locked:
+            return
         self._set_view(WORLD_XLIM, WORLD_YLIM)
+
+    def set_view_locked(self, locked: bool) -> None:
+        """Fige la vue : le repère fenêtre [-1, 1] dépend des limites visibles."""
+        self.view_locked = locked
+        if self.toolbar is not None:
+            if locked and self.toolbar.mode.name != "NONE":
+                # Désactive l'outil pan/zoom actif (les méthodes basculent l'état courant).
+                getattr(self.toolbar, self.toolbar.mode.name.lower())()
+            self.toolbar.setEnabled(not locked)
 
     # ----- Points -----------------------------------------------------------
 
@@ -321,7 +412,7 @@ class WorldMapCanvas(FigureCanvasQTAgg):
             self.select_country(self.atlas.country_at(event.xdata, event.ydata))
 
     def _on_scroll(self, event: MouseEvent) -> None:
-        if event.inaxes is not self.ax:
+        if event.inaxes is not self.ax or self.view_locked:
             return
         factor = 1 / ZOOM_STEP if event.button == "up" else ZOOM_STEP
         x, y = event.xdata, event.ydata

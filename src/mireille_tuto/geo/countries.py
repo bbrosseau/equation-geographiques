@@ -15,6 +15,8 @@ from shapely.geometry.polygon import orient
 
 import sys
 
+from mireille_tuto.geo.coords import wrap_lon
+
 DATA_DIR = (
     Path(sys._MEIPASS) / "data"
     if hasattr(sys, "_MEIPASS")
@@ -54,6 +56,39 @@ class Country:
         return sum(len(r) - 1 for r in self.rings())
 
     @property
+    def lon_extent(self) -> tuple[float, float]:
+        """Plus petit intervalle (ouest, est) de longitudes couvrant le pays.
+
+        Pour un pays à cheval sur ±180° (Nouvelle-Zélande, Fidji, Russie…), l'intervalle sort
+        de [-180, 180] ; il est placé de façon à contenir `center`, qui reste dans [-180, 180].
+        """
+        intervals = sorted((p.bounds[0], p.bounds[2]) for p in self.polygons)
+        merged: list[list[float]] = []
+        for west, east in intervals:
+            if merged and west <= merged[-1][1]:
+                merged[-1][1] = max(merged[-1][1], east)
+            else:
+                merged.append([west, east])
+        # Le pays occupe tout sauf le plus grand vide entre ses parties, en faisant le tour du globe.
+        west, east = merged[0][0], merged[-1][1]
+        largest_gap = merged[0][0] + 360.0 - merged[-1][1]
+        for left, right in zip(merged, merged[1:]):
+            gap = right[0] - left[1]
+            if gap > largest_gap:
+                largest_gap = gap
+                west, east = right[0], left[1] + 360.0
+        if self.center[0] < west:
+            west, east = west - 360.0, east - 360.0
+        return west, east
+
+    @property
+    def view_bounds(self) -> tuple[float, float, float, float]:
+        """(min_lon, min_lat, max_lon, max_lat) avec les longitudes de `lon_extent`."""
+        west, east = self.lon_extent
+        _, min_lat, _, max_lat = self.geometry.bounds
+        return west, min_lat, east, max_lat
+
+    @property
     def center(self) -> tuple[float, float]:
         """Point garanti à l'intérieur du pays, en (lon, lat)."""
         p = self.geometry.representative_point()
@@ -76,12 +111,12 @@ class CountryAtlas:
         return cls(countries)
 
     def country_at(self, lon: float, lat: float) -> Country | None:
-        hits = self._tree.query(Point(lon, lat), predicate="intersects")
+        hits = self._tree.query(Point(float(wrap_lon(lon)), lat), predicate="intersects")
         return self.countries[int(hits[0])] if len(hits) else None
 
     def country_indices_at(self, lons: np.ndarray, lats: np.ndarray) -> np.ndarray:
         """Indice dans `countries` du pays sous chaque point, -1 pour l'océan."""
-        points = shapely.points(lons, lats)
+        points = shapely.points(wrap_lon(lons), lats)
         point_idx, country_idx = self._tree.query(points, predicate="intersects")
         result = np.full(len(points), -1, dtype=int)
         result[point_idx] = country_idx

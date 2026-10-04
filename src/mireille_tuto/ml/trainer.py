@@ -29,7 +29,7 @@ class TrainingMetrics:
 class LeastSquaresTrainer:
     transform: FeatureTransform
     center: tuple[float, float]
-    balance_classes: bool = True
+    balance_classes: bool = False
     coord_mode: str = "centered"
     bounds: tuple[float, float, float, float] = (-180.0, -90.0, 180.0, 90.0)
     n_neurons: int = 0
@@ -62,7 +62,7 @@ class LeastSquaresTrainer:
         sample: LabeledSample,
         center: tuple[float, float],
         transform: FeatureTransform,
-        balance_classes: bool = True,
+        balance_classes: bool = False,
         coord_mode: str = "centered",
         bounds: tuple[float, float, float, float] | None = None,
         n_neurons: int = 0,
