@@ -12,9 +12,31 @@ Pour les utilisateurs qui ne sont pas développeurs (élèves, parents, enseigna
 l'application est disponible en téléchargement direct sans avoir besoin d'installer Python :
 
 👉 Rendez-vous sur la page des **[Releases GitHub](../../releases)** et téléchargez la version correspondant à votre système :
-- **Windows** : téléchargez `Mireille-Tuto-Windows.zip`, extrayez-le et double-cliquez sur `Mireille-Tuto.exe`.
-- **macOS** : téléchargez `Mireille-Tuto-macOS.zip`, décompressez-le et ouvrez `Mireille-Tuto.app`.
-- **ChromeOS / Linux** : téléchargez `Mireille-Tuto-Linux.tar.gz`. *(Sur ChromeOS, activez simplement l'environnement Linux dans Paramètres > Développeurs, puis lancez le binaire).*
+- **Windows** : `Mireille-Tuto-Windows-Installateur.exe`, puis suivez l'assistant (aucun droit
+  administrateur requis). Windows SmartScreen peut afficher « Windows a protégé votre ordinateur » :
+  cliquez sur « Informations complémentaires » puis « Exécuter quand même ».
+  Sans installation : `Mireille-Tuto-Windows-Portable.zip`, à extraire, puis `Mireille-Tuto.exe`.
+- **macOS** (Mac Apple Silicon, M1 et plus récents) : `Mireille-Tuto-macOS.dmg`, puis glissez
+  l'application dans *Applications*. L'application n'étant pas signée par Apple, le premier
+  lancement est bloqué : ouvrez *Réglages Système > Confidentialité et sécurité* et cliquez sur
+  « Ouvrir quand même ».
+- **ChromeOS** : activez l'environnement Linux (*Paramètres > À propos de ChromeOS > Développeurs*),
+  téléchargez `Mireille-Tuto-Linux.deb`, puis double-cliquez dessus dans l'application *Fichiers*
+  et choisissez « Installer ». Mireille Tuto apparaît ensuite dans le lanceur (dossier *Applications Linux*).
+  Chromebooks à processeur Intel ou AMD seulement.
+- **Linux** : `sudo apt install ./Mireille-Tuto-Linux.deb` (Debian, Ubuntu), ou
+  `Mireille-Tuto-Linux.tar.gz` à extraire, puis `Mireille-Tuto/Mireille-Tuto`.
+
+### Publier une nouvelle version
+
+Créez une release sur GitHub (*Releases > Draft a new release*) avec un **nouveau** tag, par
+exemple `v1.0.1`, puis publiez-la. Le workflow `.github/workflows/release.yml` compile alors
+l'application sur Windows, macOS et Linux et joint les fichiers ci-dessus à la release
+(environ 15 minutes, suivi dans l'onglet *Actions*). « Run workflow » dans l'onglet *Actions*
+fait une compilation de test sans release.
+
+Pour compiler localement : `uv run --with pyinstaller --with pillow pyinstaller --clean --noconfirm mireille_tuto.spec`
+(résultat dans `dist/`).
 
 ---
 

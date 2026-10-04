@@ -1,106 +1,123 @@
-name: Build Release Binaries
+name: Release
 
+# Publier une release sur GitHub (avec un nouveau tag, ex. v1.0.1) compile l'application
+# et y joint les installateurs. « Run workflow » dans l'onglet Actions fait une compilation
+# de test : les fichiers sont alors téléchargeables dans la page de l'exécution.
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            artifact_name: Mireille-Tuto-Windows.zip
-            asset_name: Mireille-Tuto-Windows.zip
-          - os: macos-latest
-            artifact_name: Mireille-Tuto-macOS.zip
-            asset_name: Mireille-Tuto-macOS.zip
-          - os: ubuntu-latest
-            artifact_name: Mireille-Tuto-Linux.tar.gz
-            asset_name: Mireille-Tuto-Linux.tar.gz
+          - name: Windows
+            os: windows-latest
+          - name: macOS
+            os: macos-latest
+          # Ubuntu 22.04 : glibc assez ancienne pour le Linux de ChromeOS (Debian 12).
+          - name: Linux
+            os: ubuntu-22.04
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
         with:
-          version: "latest"
+          python-version: "3.12"
 
-      - name: Set up Python
-        run: uv python install 3.12
+      - uses: astral-sh/setup-uv@v6
 
-      - name: Install Linux GUI libraries (Ubuntu only)
+      - name: Version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          echo "VERSION=${VERSION:-0.0.0}" >> "$GITHUB_ENV"
+
+      - name: Bibliothèques Qt (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-glx libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
+          sudo apt-get install -y libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 \
+            libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
 
-      - name: Install dependencies & PyInstaller
+      - name: Dépendances
+        env:
+          UV_PYTHON_PREFERENCE: only-system
         run: |
-          uv venv
-          uv pip install . "pyinstaller>=6.11.0" pillow
+          uv sync --locked --no-dev --python 3.12
+          uv pip install "pyinstaller>=6.11" pillow
 
-      - name: Generate Windows icon (.ico)
+      - name: PyInstaller
+        run: uv run --no-sync pyinstaller --clean --noconfirm mireille_tuto.spec
+
+      - name: Vérifier que l'application se lance
+        if: runner.os != 'Windows'
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
-          uv run python -c "from PIL import Image; img = Image.open('src/mireille_tuto/data/icon.png'); img.save('src/mireille_tuto/data/icon.ico', sizes=[(16,16), (24,24), (32,32), (48,48), (64,64), (128,128), (256,256)])"
+          if [ "$RUNNER_OS" = macOS ]; then
+            dist/Mireille-Tuto.app/Contents/MacOS/Mireille-Tuto --help
+          else
+            dist/Mireille-Tuto/Mireille-Tuto --help
+          fi
 
-      - name: Build with PyInstaller
-        run: |
-          uv run pyinstaller --clean --noconfirm mireille_tuto.spec
-
-      # Empaquetage Windows
-      - name: Package Windows
+      - name: Empaqueter (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/Mireille-Tuto.exe -DestinationPath dist/${{ matrix.artifact_name }}
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" packaging\windows\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Compress-Archive -Path dist\Mireille-Tuto -DestinationPath dist\Mireille-Tuto-Windows-Portable.zip
+          New-Item -ItemType Directory -Force out | Out-Null
+          Move-Item dist\Mireille-Tuto-Windows-Installateur.exe, dist\Mireille-Tuto-Windows-Portable.zip out\
 
-      # Empaquetage macOS
-      - name: Package macOS
+      - name: Empaqueter (macOS)
         if: runner.os == 'macOS'
         run: |
-          cd dist
-          zip -r ${{ matrix.artifact_name }} Mireille-Tuto.app
+          mkdir -p dmg out
+          cp -R dist/Mireille-Tuto.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "Mireille Tuto" -srcfolder dmg -ov -format UDZO out/Mireille-Tuto-macOS.dmg
 
-      # Empaquetage Linux (utilisable aussi sur ChromeOS avec environnement Linux)
-      - name: Package Linux
+      - name: Empaqueter (Linux)
         if: runner.os == 'Linux'
         run: |
-          cd dist
-          tar -czvf ${{ matrix.artifact_name }} Mireille-Tuto
+          bash packaging/linux/build-deb.sh "$VERSION"
+          tar -czf dist/Mireille-Tuto-Linux.tar.gz -C dist Mireille-Tuto
+          mkdir -p out
+          mv dist/Mireille-Tuto-Linux.deb dist/Mireille-Tuto-Linux.tar.gz out/
 
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: dist/${{ matrix.artifact_name }}
+          name: Mireille-Tuto-${{ matrix.name }}
+          path: out/*
 
-  release:
-    name: Create GitHub Release
+  publish:
+    name: Joindre à la release
     needs: build
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
 
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            artifacts/*/*
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+      - name: Téléverser les fichiers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" artifacts/* --clobber --repo "${{ github.repository }}"
