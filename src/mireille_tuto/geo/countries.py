@@ -13,7 +13,13 @@ from shapely.geometry import MultiPolygon, Point, Polygon, shape
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import orient
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+import sys
+
+DATA_DIR = (
+    Path(sys._MEIPASS) / "data"
+    if hasattr(sys, "_MEIPASS")
+    else Path(__file__).resolve().parent.parent / "data"
+)
 DATASET_50M = DATA_DIR / "ne_50m_admin_0_countries.geojson"
 DATASET_110M = DATA_DIR / "ne_110m_admin_0_countries.geojson"
 

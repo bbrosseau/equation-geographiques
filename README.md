@@ -1,18 +1,37 @@
 # Mireille Tuto
 
-Application Python (fenêtres Qt) pour explorer des concepts d'algèbre et d'apprentissage
-automatique à partir d'exemples visuels. Le premier module est une carte du monde interactive.
+Application interactive (PySide6 / Qt + Matplotlib) pour explorer et enseigner l'algèbre
+et l'apprentissage automatique (Machine Learning) à partir d'exemples visuels et ludiques.
+Le premier module est une carte du monde interactive centrée sur le Japon.
 
-## Installation (Windows)
+---
 
-L'environnement est géré par [uv](https://docs.astral.sh/uv/), qui installe aussi Python.
+## Téléchargement direct (Pour tous : Zéro installation)
+
+Pour les utilisateurs qui ne sont pas développeurs (élèves, parents, enseignants),
+l'application est disponible en téléchargement direct sans avoir besoin d'installer Python :
+
+👉 Rendez-vous sur la page des **[Releases GitHub](../../releases)** et téléchargez la version correspondant à votre système :
+- **Windows** : téléchargez `Mireille-Tuto-Windows.zip`, extrayez-le et double-cliquez sur `Mireille-Tuto.exe`.
+- **macOS** : téléchargez `Mireille-Tuto-macOS.zip`, décompressez-le et ouvrez `Mireille-Tuto.app`.
+- **ChromeOS / Linux** : téléchargez `Mireille-Tuto-Linux.tar.gz`. *(Sur ChromeOS, activez simplement l'environnement Linux dans Paramètres > Développeurs, puis lancez le binaire).*
+
+---
+
+## Utilisation développeur (avec `uv`)
+
+Le support pour exécuter directement le code source avec `uv` reste parfaitement fonctionnel :
+
+### Installation
+
+L'environnement est géré par [uv](https://docs.astral.sh/uv/), qui installe et gère automatiquement Python.
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 uv sync
 ```
 
-## Lancer l'application
+### Lancer l'application
 
 ```powershell
 uv run mireille-tuto            # frontières détaillées (1:50m)
