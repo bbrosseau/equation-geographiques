@@ -17,6 +17,7 @@ uv sync
 ```powershell
 uv run mireille-tuto            # frontières détaillées (1:50m)
 uv run mireille-tuto --simple   # frontières simplifiées (1:110m)
+uv run mireille-tuto --pays FRA # pays centré au démarrage et cible de l'échantillon (défaut : JPN)
 ```
 
 ## Utilisation de la carte
@@ -27,6 +28,7 @@ uv run mireille-tuto --simple   # frontières simplifiées (1:110m)
 | Double-clic | Centre la vue sur le pays sélectionné |
 | Clic (mode « Ajouter des points ») | Ajoute un point avec le nom du pays et ses coordonnées |
 | Molette | Zoom autour du curseur |
+| « Échantillonner la vue » (`E`) | Tire N points au hasard dans la vue et les marque d'un ✕ coloré : eau, pays cible, autre pays |
 | `S` / `P` | Passer en mode sélection / ajout de points |
 | `Échap` / `Origine` | Désélectionner / revenir à la vue du monde |
 

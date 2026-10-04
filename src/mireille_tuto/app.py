@@ -17,12 +17,16 @@ def main(argv: list[str] | None = None) -> int:
         "--simple", action="store_true",
         help="frontières moins détaillées (1:110m), plus rapides à afficher",
     )
+    parser.add_argument(
+        "--pays", default="JPN", metavar="CODE",
+        help="code ADM0_A3 du pays centré au démarrage et utilisé pour l'échantillon (défaut : JPN)",
+    )
     args, qt_args = parser.parse_known_args(argv if argv is not None else sys.argv[1:])
 
     app = QApplication([sys.argv[0], *qt_args])
     app.setApplicationName("Mireille Tuto")
 
     atlas = CountryAtlas.load(DATASET_110M if args.simple else DATASET_50M)
-    window = MainWindow(atlas)
+    window = MainWindow(atlas, focus_code=args.pays.upper())
     window.show()
     return app.exec()

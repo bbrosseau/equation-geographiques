@@ -14,9 +14,19 @@ from matplotlib.path import Path
 from matplotlib.ticker import FuncFormatter
 from PySide6.QtCore import Signal
 
-from mireille_tuto.geo import Country, CountryAtlas, MapPoint, format_coords, format_lat, format_lon
+from mireille_tuto.geo import (
+    Country,
+    CountryAtlas,
+    LabeledSample,
+    MapPoint,
+    format_coords,
+    format_lat,
+    format_lon,
+    sample_view,
+)
 
 OCEAN_COLOR = "#a9d6f5"
+SAMPLE_COLORS = ("#1d4ed8", "#d62828", "#6b6b6b")  # eau, pays cible, autre pays
 BORDER_COLOR = "#5a5a5a"
 SELECTED_FILL = "#ffd166"
 SELECTED_EDGE = "#d62828"
@@ -43,6 +53,7 @@ def country_path(country: Country) -> Path:
 class WorldMapCanvas(FigureCanvasQTAgg):
     countrySelected = Signal(object)  # Country | None
     pointsChanged = Signal()
+    sampleChanged = Signal(object)  # LabeledSample | None
     cursorMoved = Signal(object)  # (lon, lat, Country | None) | None
 
     def __init__(self, atlas: CountryAtlas, parent=None):
@@ -56,9 +67,11 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         self.show_labels = True
         self.points: list[MapPoint] = []
         self.selected: Country | None = None
+        self.sample: LabeledSample | None = None
 
         self._paths = {c.code: country_path(c) for c in atlas.countries}
         self._point_artists: list[tuple] = []
+        self._sample_artists: list = []
         self._selected_patch: PathPatch | None = None
 
         self.ax = self.figure.add_subplot()
@@ -158,6 +171,40 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         self._point_artists.clear()
         self.draw_idle()
         self.pointsChanged.emit()
+
+    # ----- Échantillonnage --------------------------------------------------
+
+    def visible_bounds(self) -> tuple[float, float, float, float]:
+        self.ax.apply_aspect()
+        (x0, x1), (y0, y1) = self.ax.get_xlim(), self.ax.get_ylim()
+        return x0, y0, x1, y1
+
+    def sample_view(self, n: int, target: Country) -> LabeledSample:
+        """Tire n points dans la vue visible et les affiche en ✕ colorés selon leur classe."""
+        self._remove_sample_artists()
+        self.sample = sample_view(self.atlas, self.visible_bounds(), n, target)
+        for k, (name, color) in enumerate(zip(self.sample.class_names, SAMPLE_COLORS)):
+            mask = self.sample.labels == k
+            self._sample_artists.append(self.ax.scatter(
+                self.sample.lons[mask], self.sample.lats[mask],
+                marker="x", s=28, linewidths=1.4, color=color, zorder=4,
+                label=f"{name} ({int(mask.sum())})",
+            ))
+        self._sample_artists.append(self.ax.legend(loc="upper right", fontsize=9, framealpha=0.9))
+        self.draw_idle()
+        self.sampleChanged.emit(self.sample)
+        return self.sample
+
+    def clear_sample(self) -> None:
+        self._remove_sample_artists()
+        self.sample = None
+        self.draw_idle()
+        self.sampleChanged.emit(None)
+
+    def _remove_sample_artists(self) -> None:
+        for artist in self._sample_artists:
+            artist.remove()
+        self._sample_artists.clear()
 
     def set_labels_visible(self, visible: bool) -> None:
         self.show_labels = visible

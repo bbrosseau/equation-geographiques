@@ -19,6 +19,21 @@ def window():
     app.processEvents()
 
 
+def test_starts_centered_on_japan(window):
+    min_lon, min_lat, max_lon, max_lat = window.map.visible_bounds()
+    lon, lat = window.focus_country.center
+    assert min_lon < lon < max_lon and min_lat < lat < max_lat
+    assert max_lon - min_lon < 90
+
+
+def test_sample_view_updates_panel(window):
+    sample = window.map.sample_view(300, window.focus_country)
+    assert len(sample) == 300
+    assert "japon" in window.sample_info.text()
+    window.map.clear_sample()
+    assert window.map.sample is None
+
+
 def test_select_country_updates_panel(window):
     canada = window.map.atlas.country_at(-100, 60)
     window.map.select_country(canada)

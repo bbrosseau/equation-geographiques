@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+import shapely
 from shapely import STRtree
 from shapely.geometry import MultiPolygon, Point, Polygon, shape
 from shapely.geometry.base import BaseGeometry
@@ -71,6 +72,20 @@ class CountryAtlas:
     def country_at(self, lon: float, lat: float) -> Country | None:
         hits = self._tree.query(Point(lon, lat), predicate="intersects")
         return self.countries[int(hits[0])] if len(hits) else None
+
+    def country_indices_at(self, lons: np.ndarray, lats: np.ndarray) -> np.ndarray:
+        """Indice dans `countries` du pays sous chaque point, -1 pour l'océan."""
+        points = shapely.points(lons, lats)
+        point_idx, country_idx = self._tree.query(points, predicate="intersects")
+        result = np.full(len(points), -1, dtype=int)
+        result[point_idx] = country_idx
+        return result
+
+    def by_code(self, code: str) -> Country:
+        for country in self.countries:
+            if country.code == code:
+                return country
+        raise KeyError(f"Pays inconnu : {code}")
 
     def __len__(self) -> int:
         return len(self.countries)

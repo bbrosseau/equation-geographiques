@@ -14,13 +14,14 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QPushButton,
+    QSpinBox,
     QToolBar,
     QVBoxLayout,
     QWidget,
 )
 
-from mireille_tuto.geo import Country, CountryAtlas, format_coords
-from mireille_tuto.ui.map_canvas import MapMode, WorldMapCanvas
+from mireille_tuto.geo import Country, CountryAtlas, LabeledSample, format_coords
+from mireille_tuto.ui.map_canvas import SAMPLE_COLORS, MapMode, WorldMapCanvas
 
 QUICK_COLORS = ["#e63946", "#f4a261", "#2a9d8f", "#264653", "#8338ec", "#ff006e"]
 
@@ -32,8 +33,9 @@ def color_icon(color: str, size: int = 16) -> QIcon:
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, atlas: CountryAtlas):
+    def __init__(self, atlas: CountryAtlas, focus_code: str = "JPN"):
         super().__init__()
+        self.focus_country = atlas.by_code(focus_code)
         self.setWindowTitle("Mireille Tuto — Carte du monde")
         self.resize(1400, 800)
 
@@ -51,7 +53,10 @@ class MainWindow(QMainWindow):
 
         self.map.countrySelected.connect(self._show_country)
         self.map.pointsChanged.connect(self._refresh_points)
+        self.map.sampleChanged.connect(self._show_sample)
         self.map.cursorMoved.connect(self._show_cursor)
+
+        self.map.zoom_to(self.focus_country)
 
     # ----- Construction de l'interface --------------------------------------
 
@@ -90,6 +95,21 @@ class MainWindow(QMainWindow):
         clear.triggered.connect(self.map.clear_points)
         bar.addAction(clear)
 
+        bar.addSeparator()
+        self.sample_size = QSpinBox(bar)
+        self.sample_size.setRange(10, 20000)
+        self.sample_size.setSingleStep(100)
+        self.sample_size.setValue(500)
+        self.sample_size.setSuffix(" points")
+        bar.addWidget(self.sample_size)
+        sample = QAction("Échantillonner la vue", self)
+        sample.setShortcut(QKeySequence("E"))
+        sample.triggered.connect(lambda: self.map.sample_view(self.sample_size.value(), self.focus_country))
+        bar.addAction(sample)
+        clear_sample = QAction("Effacer l'échantillon", self)
+        clear_sample.triggered.connect(self.map.clear_sample)
+        bar.addAction(clear_sample)
+
         deselect = QAction("Désélectionner", self)
         deselect.setShortcut(QKeySequence("Esc"))
         deselect.triggered.connect(lambda: self.map.select_country(None))
@@ -120,6 +140,13 @@ class MainWindow(QMainWindow):
         remove = QPushButton("Supprimer le point", panel)
         remove.clicked.connect(self._remove_selected_point)
         layout.addWidget(remove)
+
+        layout.addSpacing(16)
+        layout.addWidget(QLabel("<b>Échantillon</b>"))
+        self.sample_info = QLabel("Clique sur « Échantillonner la vue ».", panel)
+        self.sample_info.setWordWrap(True)
+        self.sample_info.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(self.sample_info)
 
         dock = QDockWidget("Informations", self)
         dock.setWidget(panel)
@@ -165,6 +192,18 @@ class MainWindow(QMainWindow):
         for point in self.map.points:
             item = QListWidgetItem(color_icon(point.color), point.label.replace("\n", " — "))
             self.points_list.addItem(item)
+
+    def _show_sample(self, sample: LabeledSample | None) -> None:
+        if sample is None:
+            self.sample_info.setText("Clique sur « Échantillonner la vue ».")
+            return
+        rows = "".join(
+            f"<tr><td><span style='color:{color}'>✕</span> {name}</td>"
+            f"<td align='right'>&nbsp;{count}</td>"
+            f"<td align='right'>&nbsp;{count / len(sample):.0%}</td></tr>"
+            for (name, count), color in zip(sample.counts().items(), SAMPLE_COLORS)
+        )
+        self.sample_info.setText(f"<p>{len(sample)} points tirés dans la vue</p><table>{rows}</table>")
 
     def _remove_selected_point(self) -> None:
         row = self.points_list.currentRow()
