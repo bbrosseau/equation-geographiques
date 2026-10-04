@@ -28,7 +28,8 @@ uv run mireille-tuto --pays FRA # pays centré au démarrage et cible de l'écha
 | Double-clic | Centre la vue sur le pays sélectionné |
 | Clic (mode « Ajouter des points ») | Ajoute un point avec le nom du pays et ses coordonnées |
 | Molette | Zoom autour du curseur |
-| « Échantillonner la vue » (`E`) | Tire N points au hasard dans la vue et les marque d'un ✕ coloré : eau, pays cible, autre pays |
+| « Échantillonner la vue » (`E`) | Tire N points additionnels au hasard dans la vue (s'accumulent à l'échantillon existant) et les marque d'un ✕ coloré : eau, pays cible, autre pays |
+| « Effacer l'échantillon » | Réinitialise l'échantillon visible pour repartir à zéro |
 | `S` / `P` | Passer en mode sélection / ajout de points |
 | `Échap` / `Origine` | Désélectionner / revenir à la vue du monde |
 
@@ -47,12 +48,72 @@ uv run pytest
 src/mireille_tuto/
   app.py              point d'entrée (QApplication)
   data/               frontières des pays (Natural Earth, domaine public)
-  geo/                chargement des pays, recherche spatiale, coordonnées
-  ui/                 fenêtre principale et widget de carte
+  geo/                chargement des pays, recherche spatiale, coordonnées, échantillonnage
+  ml/                 inéquations, formules, registre de transformations, entraîneur moindres carrés
+  ui/                 fenêtre principale, widget de carte et atelier Algèbre & ML
 scripts/
   update_maps.py      mise à jour des données cartographiques
 tests/
 ```
+
+## Atelier Algèbre & Apprentissage ML
+
+L'application comprend un atelier latéral en trois onglets :
+
+### 1. Carte & Points
+- Affiche les détails du pays sélectionné (population, centre, nombre de sommets).
+- Liste des points manuels ajoutés et résumé de l'échantillon visible.
+
+### 2. Inéquations (Mode manuel)
+Mireille peut taper une inéquation ou équation directement dans la zone de texte pour tracer
+une frontière de décision sur la carte. Trois repères de coordonnées sont proposés :
+- **Fenêtre `[-1, 1]`** : repère relatif à l'écran visible ($[-1, 1]$ en x et y).
+- **Latitude & Longitude** : degrés réels sur la Terre (`lat` et `lon`, avec alias `x=lon, y=lat`).
+- **Centré sur le pays** : degrés relatifs au centre du pays ($x = \text{lon} - \text{lon}_0, \; y = \text{lat} - \text{lat}_0$).
+
+La syntaxe est naturelle et simplifiée pour Mireille (aucun besoin de manipuler numpy !) :
+- **Variables** : `x, y` ou `lat, lon`
+- **Opérateurs arithmétiques** : `+`, `-`, `*`, `/`, `**` (ou `^`)
+- **Inéquations & Comparaisons** : `<`, `>`, `<=`, `>=`, `==`, `and`, `or`, `not`
+- **Fonctions prêtes à l'emploi** :
+  - `relu(u)` : le neurone du Deep Learning ($\max(0, u)$)
+  - `between(u, min, max)` / `bucket(...)` : tranche / bucket ($1.0$ si dans l'intervalle, $0.0$ sinon)
+  - `dist(x, y, x0, y0)` : distance euclidienne directe $\sqrt{(x-x_0)^2 + (y-y_0)^2}$
+  - `sqrt(u)` : racine carrée sécurisée contre les négatifs
+  - `abs(u)`, `step(u)`, `clamp(u, min, max)`, `sigmoid(u)`
+
+La zone solution est surlignée en vert translucide et les métriques sont calculées en direct
+sur l'ensemble des points visibles (points manuels et échantillon aléatoire).
+
+### 3. Apprentissage Machine Learning (Moindres carrés)
+L'ordinateur apprend lui-même les coefficients de la frontière avec une fonction de perte
+des moindres carrés (MSE) et une descente de gradient animée à chaque epoch :
+- **Données d'entraînement : Union des points manuels et des échantillons aléatoires** :
+  Mireille peut placer des points à la main (clic sur la carte), tirer un échantillon
+  aléatoire (`E`), ou combiner les deux ! Le modèle apprend sur l'union de tous ces points.
+- Menu déroulant des **transformations nommées** (`transforms.py`) :
+  1. Droite simple `[1, x, y]`
+  2. Droite + Diagonale `[1, x, y, x*y]`
+  3. Ellipse droite `[1, x, y, x², y²]`
+  4. Polynôme degré 2 complet `[1, x, y, x*y, x², y²]`
+  5. Inéquations & Demi-plans `[1, x>0, y>0, y>x, y<x+4, x²+y²<30]`
+  6. Distance à Tokyo `[1, d, d²]`
+  7. Réseau de neurones ReLU `[relu(x), relu(-x), relu(y)...]`
+  8. Buckets & Tranches `[between(x, a, b)]`
+  9. Mon laboratoire (Mireille) : espace où Mireille écrit ses propres caractéristiques avec `"1": 1`, inéquations, `relu()`, `between()`, `dist()`.
+- **Sélecteur du nombre de neurones cachés (0 à 32)** :
+  - **`0` (Modèle direct)** : régression linéaire classique directe sur les caractéristiques choisies (strictement identique au fonctionnement d'origine).
+  - **`1+` neurones** : réseau de neurones avec couche cachée ReLU ! Chaque neurone $N_k$ apprend automatiquement une combinaison pondérée des caractéristiques transformées ($\text{relu}(\sum w_j \phi_j + b)$).
+  - Compatible à la fois avec la **rétropropagation par descente de gradient** (mise à jour animée des neurones à chaque epoch) et avec la **solution algébrique directe** (Random Features / ELM).
+- **Contrôles d'apprentissage flexibles (Pause, Reprise, Réglages à la volée)** :
+  - **Démarrer / Pause / Reprendre** : cliquer sur Pause suspend l'entraînement sans jamais perdre les poids ni l'équation apprise. Cliquer sur Reprendre repart exactement du point d'arrêt.
+  - **Taux d'apprentissage ($\eta$) à la volée** : modifiable en direct ou en pause sans réinitialiser le modèle.
+  - **Époques / mise à jour** : permet de choisir combien d'époques de gradient sont calculées à chaque rafraîchissement visuel (ex. 1 pour observer chaque pas fin, ou 10/25/50 pour avancer rapidement).
+  - **Époques max (Arrêt)** : seuil d'arrêt automatique (ex. 50 ou 100 époques) pour observer les résultats à un palier donné (0 = illimité).
+  - **Cadence (images/s)** : règle la fréquence des rafraîchissements visuels de la carte.
+  - **Étape +1 / Étape +10 / Étape +50** : pour avancer manuellement d'un nombre précis d'époques.
+  - **Solution directe $\to$ Gradient** : calculer la solution algébrique directe puis continuer l'ajustement par descente de gradient avec le bouton « Continuer (Gradient) ».
+- Affichage en temps réel de l'équation apprise (avec le détail de chaque neurone $N_1, N_2, \dots$ lorsqu'ils sont activés) et du nombre de points utilisés (manuels + échantillonnés).
 
 ## Données cartographiques
 

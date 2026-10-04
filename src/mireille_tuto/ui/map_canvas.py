@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from enum import Enum
 
+import numpy as np
 from matplotlib.backend_bases import MouseButton, MouseEvent
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.collections import PatchCollection
@@ -22,6 +23,7 @@ from mireille_tuto.geo import (
     format_coords,
     format_lat,
     format_lon,
+    label_points,
     sample_view,
 )
 
@@ -72,6 +74,8 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         self._paths = {c.code: country_path(c) for c in atlas.countries}
         self._point_artists: list[tuple] = []
         self._sample_artists: list = []
+        self._boundary_artists: list = []
+        self._boundary_evaluator = None  # Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, bool]]
         self._selected_patch: PathPatch | None = None
 
         self.ax = self.figure.add_subplot()
@@ -136,7 +140,7 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         self.draw_idle()
         self.countrySelected.emit(country)
 
-    def zoom_to(self, country: Country, margin: float = 0.15) -> None:
+    def zoom_to(self, country: Country, margin: float = 0.30) -> None:
         minx, miny, maxx, maxy = country.geometry.bounds
         dx = max(maxx - minx, 2.0) * margin
         dy = max(maxy - miny, 2.0) * margin
@@ -180,14 +184,19 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         return x0, y0, x1, y1
 
     def sample_view(self, n: int, target: Country) -> LabeledSample:
-        """Tire n points dans la vue visible et les affiche en ✕ colorés selon leur classe."""
+        """Tire n points additionnels dans la vue visible et les affiche en ✕ colorés selon leur classe."""
+        new_batch = sample_view(self.atlas, self.visible_bounds(), n, target)
+        if self.sample is not None and len(self.sample) > 0:
+            self.sample = LabeledSample.concat(self.sample, new_batch)
+        else:
+            self.sample = new_batch
+
         self._remove_sample_artists()
-        self.sample = sample_view(self.atlas, self.visible_bounds(), n, target)
         for k, (name, color) in enumerate(zip(self.sample.class_names, SAMPLE_COLORS)):
             mask = self.sample.labels == k
             self._sample_artists.append(self.ax.scatter(
                 self.sample.lons[mask], self.sample.lats[mask],
-                marker="x", s=28, linewidths=1.4, color=color, zorder=4,
+                marker="x", s=20, linewidths=1.2, color=color, alpha=0.5, zorder=4,
                 label=f"{name} ({int(mask.sum())})",
             ))
         self._sample_artists.append(self.ax.legend(loc="upper right", fontsize=9, framealpha=0.9))
@@ -201,10 +210,91 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         self.draw_idle()
         self.sampleChanged.emit(None)
 
+    def get_manual_sample(self, target: Country) -> LabeledSample | None:
+        """Retourne les points manuels sous forme de LabeledSample étiqueté par rapport à target."""
+        if not self.points:
+            return None
+        lons = np.array([p.lon for p in self.points], dtype=float)
+        lats = np.array([p.lat for p in self.points], dtype=float)
+        return label_points(self.atlas, lons, lats, target)
+
+    def get_training_sample(self, target: Country) -> LabeledSample | None:
+        """Retourne l'union des points manuels et des points échantillonnés dans la vue."""
+        manual = self.get_manual_sample(target)
+        return LabeledSample.concat(manual, self.sample)
+
     def _remove_sample_artists(self) -> None:
         for artist in self._sample_artists:
             artist.remove()
         self._sample_artists.clear()
+
+    # ----- Frontière algébrique / ML ----------------------------------------
+
+    def set_decision_boundary(self, evaluator) -> None:
+        """Définit la fonction d'évaluation (lon_2d, lat_2d) -> (values, is_boolean) et trace la frontière."""
+        self._boundary_evaluator = evaluator
+        self.redraw_decision_boundary()
+
+    def clear_decision_boundary(self) -> None:
+        self._boundary_evaluator = None
+        self._remove_boundary_artists()
+        self.draw_idle()
+
+    def redraw_decision_boundary(self) -> None:
+        self._remove_boundary_artists()
+        if self._boundary_evaluator is None:
+            self.draw_idle()
+            return
+
+        min_lon, min_lat, max_lon, max_lat = self.visible_bounds()
+        grid_n = 90
+        lons = np.linspace(min_lon, max_lon, grid_n)
+        lats = np.linspace(min_lat, max_lat, grid_n)
+        lon_grid, lat_grid = np.meshgrid(lons, lats)
+
+        try:
+            values, is_boolean = self._boundary_evaluator(lon_grid, lat_grid)
+        except Exception:
+            self.draw_idle()
+            return
+
+        z = np.where(values, 1.0, -1.0) if is_boolean else np.asarray(values, dtype=float)
+
+        # Zone solution remplie en vert translucide
+        try:
+            cf = self.ax.contourf(
+                lon_grid, lat_grid, z,
+                levels=[0.0, np.inf],
+                colors=["#10b981"],
+                alpha=0.18,
+                zorder=3,
+            )
+            self._boundary_artists.append(cf)
+        except Exception:
+            pass
+
+        # Ligne de démarcation de la frontière f(x, y) = 0
+        try:
+            cs = self.ax.contour(
+                lon_grid, lat_grid, z,
+                levels=[0.0],
+                colors=["#047857"],
+                linewidths=2.4,
+                zorder=4,
+            )
+            self._boundary_artists.append(cs)
+        except Exception:
+            pass
+
+        self.draw_idle()
+
+    def _remove_boundary_artists(self) -> None:
+        for artist in self._boundary_artists:
+            try:
+                artist.remove()
+            except Exception:
+                pass
+        self._boundary_artists.clear()
 
     def set_labels_visible(self, visible: bool) -> None:
         self.show_labels = visible
@@ -257,4 +347,7 @@ class WorldMapCanvas(FigureCanvasQTAgg):
         self.ax.set_ylim(*ylim)
         if self.toolbar is not None:
             self.toolbar.push_current()
-        self.draw_idle()
+        if self._boundary_evaluator is not None:
+            self.redraw_decision_boundary()
+        else:
+            self.draw_idle()

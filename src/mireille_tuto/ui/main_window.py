@@ -15,12 +15,15 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QSpinBox,
+    QTabWidget,
     QToolBar,
     QVBoxLayout,
     QWidget,
 )
 
 from mireille_tuto.geo import Country, CountryAtlas, LabeledSample, format_coords
+from mireille_tuto.ui.algebra_panel import AlgebraPanel
+from mireille_tuto.ui.icon import get_app_icon
 from mireille_tuto.ui.map_canvas import SAMPLE_COLORS, MapMode, WorldMapCanvas
 
 QUICK_COLORS = ["#e63946", "#f4a261", "#2a9d8f", "#264653", "#8338ec", "#ff006e"]
@@ -36,7 +39,8 @@ class MainWindow(QMainWindow):
     def __init__(self, atlas: CountryAtlas, focus_code: str = "JPN"):
         super().__init__()
         self.focus_country = atlas.by_code(focus_code)
-        self.setWindowTitle("Mireille Tuto — Carte du monde")
+        self.setWindowTitle("Équations géographiques -Carte du monde")
+        self.setWindowIcon(get_app_icon())
         self.resize(1400, 800)
 
         self.map = WorldMapCanvas(atlas, self)
@@ -99,7 +103,7 @@ class MainWindow(QMainWindow):
         self.sample_size = QSpinBox(bar)
         self.sample_size.setRange(10, 20000)
         self.sample_size.setSingleStep(100)
-        self.sample_size.setValue(500)
+        self.sample_size.setValue(1000)
         self.sample_size.setSuffix(" points")
         bar.addWidget(self.sample_size)
         sample = QAction("Échantillonner la vue", self)
@@ -116,7 +120,11 @@ class MainWindow(QMainWindow):
         self.addAction(deselect)
 
     def _build_side_panel(self) -> None:
-        panel = QWidget(self)
+        tabs = QTabWidget(self)
+        self.sidebar_tabs = tabs
+
+        # Onglet 1 : Carte et Points
+        panel = QWidget(tabs)
         layout = QVBoxLayout(panel)
 
         layout.addWidget(QLabel("<b>Pays sélectionné</b>"))
@@ -130,7 +138,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.zoom_button)
 
         layout.addSpacing(16)
-        layout.addWidget(QLabel("<b>Points</b>"))
+        layout.addWidget(QLabel("<b>Points manuels</b>"))
         self.points_list = QListWidget(panel)
         layout.addWidget(self.points_list, stretch=1)
         labels = QCheckBox("Afficher les étiquettes", panel)
@@ -142,16 +150,28 @@ class MainWindow(QMainWindow):
         layout.addWidget(remove)
 
         layout.addSpacing(16)
-        layout.addWidget(QLabel("<b>Échantillon</b>"))
-        self.sample_info = QLabel("Clique sur « Échantillonner la vue ».", panel)
+        layout.addWidget(QLabel("<b>Échantillon de points</b>"))
+        self.sample_info = QLabel("Clique sur « Échantillonner la vue » (touche E).", panel)
         self.sample_info.setWordWrap(True)
         self.sample_info.setTextFormat(Qt.TextFormat.RichText)
         layout.addWidget(self.sample_info)
 
-        dock = QDockWidget("Informations", self)
-        dock.setWidget(panel)
+        # Panneau Algèbre & ML
+        self.algebra_panel = AlgebraPanel(
+            map_canvas=self.map,
+            get_center=lambda: (self.map.selected.center if self.map.selected else self.focus_country.center),
+            get_target=lambda: self.map.selected or self.focus_country,
+            parent=self,
+        )
+
+        tabs.addTab(panel, "Carte")
+        tabs.addTab(self.algebra_panel, "Algèbre & ML")
+
+        dock = QDockWidget("Atelier Algèbre & ML", self)
+        dock.setWidget(tabs)
         dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
-        dock.setMinimumWidth(280)
+        dock.setMinimumWidth(320)
+        dock.setMaximumWidth(430)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
     # ----- Réactions --------------------------------------------------------

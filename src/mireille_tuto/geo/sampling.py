@@ -35,6 +35,19 @@ class LabeledSample:
     def __len__(self) -> int:
         return len(self.labels)
 
+    @classmethod
+    def concat(cls, *samples: LabeledSample | None) -> LabeledSample | None:
+        """Combine plusieurs LabeledSample en un seul."""
+        valid = [s for s in samples if s is not None and len(s) > 0]
+        if not valid:
+            return None
+        if len(valid) == 1:
+            return valid[0]
+        lons = np.concatenate([s.lons for s in valid])
+        lats = np.concatenate([s.lats for s in valid])
+        labels = np.concatenate([s.labels for s in valid])
+        return cls(lons=lons, lats=lats, labels=labels, class_names=valid[0].class_names)
+
 
 def sample_uniform(
     bounds: tuple[float, float, float, float], n: int, rng: np.random.Generator | None = None
