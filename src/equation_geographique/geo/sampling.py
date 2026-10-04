@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from mireille_tuto.geo.countries import Country, CountryAtlas
+from equation_geographique.geo.countries import Country, CountryAtlas
 
 WATER, TARGET, OTHER_LAND = 0, 1, 2
 

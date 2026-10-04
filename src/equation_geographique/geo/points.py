@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from mireille_tuto.geo.coords import format_coords
+from equation_geographique.geo.coords import format_coords
 
 
 @dataclass

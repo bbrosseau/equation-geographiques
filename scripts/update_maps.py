@@ -18,7 +18,7 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-from mireille_tuto.geo.countries import DATA_DIR, CountryAtlas
+from equation_geographique.geo.countries import DATA_DIR, CountryAtlas
 
 REPO = "nvkelso/natural-earth-vector"
 SCALES = ("50m", "110m")
@@ -32,7 +32,7 @@ def filename(scale: str) -> str:
 
 
 def fetch(url: str) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": "mireille-tuto"})
+    request = urllib.request.Request(url, headers={"User-Agent": "equation-geographique"})
     with urllib.request.urlopen(request, timeout=120) as response:
         return response.read()
 

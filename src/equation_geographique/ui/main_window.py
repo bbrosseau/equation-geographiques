@@ -22,10 +22,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from mireille_tuto.geo import Country, CountryAtlas, LabeledSample, format_coords
-from mireille_tuto.ui.algebra_panel import AlgebraPanel
-from mireille_tuto.ui.icon import get_app_icon
-from mireille_tuto.ui.map_canvas import SAMPLE_COLORS, MapMode, WorldMapCanvas
+from equation_geographique.geo import Country, CountryAtlas, LabeledSample, format_coords
+from equation_geographique.ui.algebra_panel import AlgebraPanel
+from equation_geographique.ui.icon import get_app_icon
+from equation_geographique.ui.map_canvas import SAMPLE_COLORS, MapMode, WorldMapCanvas
 
 QUICK_COLORS = ["#e63946", "#f4a261", "#2a9d8f", "#264653", "#8338ec", "#ff006e"]
 
@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
     def __init__(self, atlas: CountryAtlas, focus_code: str | None = None):
         super().__init__()
         self.focus_country = atlas.by_code(focus_code) if focus_code else None
-        self.setWindowTitle("Équations géographiques -Carte du monde")
+        self.setWindowTitle("Équation géographique - Carte du monde")
         self.setWindowIcon(get_app_icon())
         self.resize(1400, 800)
 

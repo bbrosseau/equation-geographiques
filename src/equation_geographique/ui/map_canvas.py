@@ -15,7 +15,7 @@ from matplotlib.path import Path
 from matplotlib.ticker import Formatter, FuncFormatter, Locator, MaxNLocator
 from PySide6.QtCore import Signal
 
-from mireille_tuto.geo import (
+from equation_geographique.geo import (
     Country,
     CountryAtlas,
     LabeledSample,

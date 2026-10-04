@@ -1,4 +1,4 @@
-# Mireille Tuto
+# Équation géographique
 
 Application interactive (PySide6 / Qt + Matplotlib) pour explorer et enseigner l'algèbre
 et l'apprentissage automatique (Machine Learning) à partir d'exemples visuels et ludiques.
@@ -12,20 +12,20 @@ Pour les utilisateurs qui ne sont pas développeurs (élèves, parents, enseigna
 l'application est disponible en téléchargement direct sans avoir besoin d'installer Python :
 
 👉 Rendez-vous sur la page des **[Releases GitHub](../../releases)** et téléchargez la version correspondant à votre système :
-- **Windows** : `Mireille-Tuto-Windows-Installateur.exe`, puis suivez l'assistant (aucun droit
+- **Windows** : `Equation-Geographique-Windows-Installateur.exe`, puis suivez l'assistant (aucun droit
   administrateur requis). Windows SmartScreen peut afficher « Windows a protégé votre ordinateur » :
   cliquez sur « Informations complémentaires » puis « Exécuter quand même ».
-  Sans installation : `Mireille-Tuto-Windows-Portable.zip`, à extraire, puis `Mireille-Tuto.exe`.
-- **macOS** (Mac Apple Silicon, M1 et plus récents) : `Mireille-Tuto-macOS.dmg`, puis glissez
+  Sans installation : `Equation-Geographique-Windows-Portable.zip`, à extraire, puis `Equation-Geographique.exe`.
+- **macOS** (Mac Apple Silicon, M1 et plus récents) : `Equation-Geographique-macOS.dmg`, puis glissez
   l'application dans *Applications*. L'application n'étant pas signée par Apple, le premier
   lancement est bloqué : ouvrez *Réglages Système > Confidentialité et sécurité* et cliquez sur
   « Ouvrir quand même ».
 - **ChromeOS** : activez l'environnement Linux (*Paramètres > À propos de ChromeOS > Développeurs*),
-  téléchargez `Mireille-Tuto-Linux.deb`, puis double-cliquez dessus dans l'application *Fichiers*
-  et choisissez « Installer ». Mireille Tuto apparaît ensuite dans le lanceur (dossier *Applications Linux*).
+  téléchargez `Equation-Geographique-Linux.deb`, puis double-cliquez dessus dans l'application *Fichiers*
+  et choisissez « Installer ». Équation géographique apparaît ensuite dans le lanceur (dossier *Applications Linux*).
   Chromebooks à processeur Intel ou AMD seulement.
-- **Linux** : `sudo apt install ./Mireille-Tuto-Linux.deb` (Debian, Ubuntu), ou
-  `Mireille-Tuto-Linux.tar.gz` à extraire, puis `Mireille-Tuto/Mireille-Tuto`.
+- **Linux** : `sudo apt install ./Equation-Geographique-Linux.deb` (Debian, Ubuntu), ou
+  `Equation-Geographique-Linux.tar.gz` à extraire, puis `Equation-Geographique/Equation-Geographique`.
 
 ### Publier une nouvelle version
 
@@ -35,7 +35,7 @@ l'application sur Windows, macOS et Linux et joint les fichiers ci-dessus à la 
 (environ 15 minutes, suivi dans l'onglet *Actions*). « Run workflow » dans l'onglet *Actions*
 fait une compilation de test sans release.
 
-Pour compiler localement : `uv run --with pyinstaller --with pillow pyinstaller --clean --noconfirm mireille_tuto.spec`
+Pour compiler localement : `uv run --with pyinstaller --with pillow pyinstaller --clean --noconfirm equation_geographique.spec`
 (résultat dans `dist/`).
 
 ---
@@ -56,9 +56,9 @@ uv sync
 ### Lancer l'application
 
 ```powershell
-uv run mireille-tuto            # frontières détaillées (1:50m)
-uv run mireille-tuto --simple   # frontières simplifiées (1:110m)
-uv run mireille-tuto --pays FRA # présélectionne un pays au démarrage
+uv run equation-geographique            # frontières détaillées (1:50m)
+uv run equation-geographique --simple   # frontières simplifiées (1:110m)
+uv run equation-geographique --pays FRA # présélectionne un pays au démarrage
 ```
 
 ## Utilisation
@@ -92,7 +92,7 @@ uv run pytest
 ## Structure
 
 ```
-src/mireille_tuto/
+src/equation_geographique/
   app.py              point d'entrée (QApplication)
   data/               frontières des pays (Natural Earth, domaine public)
   geo/                chargement des pays, recherche spatiale, coordonnées, échantillonnage
@@ -169,15 +169,15 @@ des moindres carrés (MSE) et une descente de gradient animée à chaque epoch :
 Les frontières viennent de [Natural Earth](https://www.naturalearthdata.com/), jeu
 « Admin 0 – Countries », dans le domaine public. Les fichiers GeoJSON proviennent du dépôt
 officiel [nvkelso/natural-earth-vector](https://github.com/nvkelso/natural-earth-vector)
-(dossier `geojson/`) et sont copiés dans `src/mireille_tuto/data/` :
+(dossier `geojson/`) et sont copiés dans `src/equation_geographique/data/` :
 
 | Fichier | Échelle | Utilisé par |
 | --- | --- | --- |
-| `ne_50m_admin_0_countries.geojson` | 1:50 millions (~3 Mo) | `uv run mireille-tuto` |
-| `ne_110m_admin_0_countries.geojson` | 1:110 millions (~0,8 Mo) | `uv run mireille-tuto --simple`, tests |
+| `ne_50m_admin_0_countries.geojson` | 1:50 millions (~3 Mo) | `uv run equation-geographique` |
+| `ne_110m_admin_0_countries.geojson` | 1:110 millions (~0,8 Mo) | `uv run equation-geographique --simple`, tests |
 
 La version exacte installée (référence, commit, version Natural Earth, date) est notée dans
-`src/mireille_tuto/data/SOURCE.json`. L'application ne télécharge rien à l'exécution.
+`src/equation_geographique/data/SOURCE.json`. L'application ne télécharge rien à l'exécution.
 
 ### Mise à jour
 

@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from mireille_tuto.geo.countries import DATASET_110M, CountryAtlas
-from mireille_tuto.geo.sampling import sample_view
-from mireille_tuto.ml import (
+from equation_geographique.geo.countries import DATASET_110M, CountryAtlas
+from equation_geographique.geo.sampling import sample_view
+from equation_geographique.ml import (
     PRESET_FORMULAS,
     PRESETS_BY_MODE,
     TRANSFORMS,
@@ -139,7 +139,7 @@ def test_presets_by_mode():
 
 
 def test_math_helpers_and_simplified_syntax():
-    from mireille_tuto.ml.transforms import (
+    from equation_geographique.ml.transforms import (
         between,
         bucket,
         dist,

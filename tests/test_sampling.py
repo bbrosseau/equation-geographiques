@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from mireille_tuto.geo.countries import DATASET_110M, CountryAtlas
-from mireille_tuto.geo.sampling import OTHER_LAND, TARGET, WATER, label_points, sample_uniform, sample_view
+from equation_geographique.geo.countries import DATASET_110M, CountryAtlas
+from equation_geographique.geo.sampling import OTHER_LAND, TARGET, WATER, label_points, sample_uniform, sample_view
 
 
 @pytest.fixture(scope="module")
@@ -52,7 +52,7 @@ def test_sample_view_around_japan(atlas):
 
 
 def test_labeled_sample_concat(atlas):
-    from mireille_tuto.geo.sampling import LabeledSample
+    from equation_geographique.geo.sampling import LabeledSample
 
     japan = atlas.by_code("JPN")
     s1 = label_points(atlas, np.array([139.69]), np.array([35.69]), japan)

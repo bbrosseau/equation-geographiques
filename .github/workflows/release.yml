@@ -61,7 +61,7 @@ jobs:
           uv pip install "pyinstaller>=6.11" pillow
 
       - name: PyInstaller
-        run: uv run --no-sync pyinstaller --clean --noconfirm mireille_tuto.spec
+        run: uv run --no-sync pyinstaller --clean --noconfirm equation_geographique.spec
 
       - name: Vérifier que l'application se lance
         if: runner.os != 'Windows'
@@ -69,9 +69,9 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: |
           if [ "$RUNNER_OS" = macOS ]; then
-            dist/Mireille-Tuto.app/Contents/MacOS/Mireille-Tuto --help
+            dist/Equation-Geographique.app/Contents/MacOS/Equation-Geographique --help
           else
-            dist/Mireille-Tuto/Mireille-Tuto --help
+            dist/Equation-Geographique/Equation-Geographique --help
           fi
 
       - name: Empaqueter (Windows)
@@ -81,29 +81,29 @@ jobs:
           choco install innosetup --no-progress -y
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" packaging\windows\installer.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Compress-Archive -Path dist\Mireille-Tuto -DestinationPath dist\Mireille-Tuto-Windows-Portable.zip
+          Compress-Archive -Path dist\Equation-Geographique -DestinationPath dist\Equation-Geographique-Windows-Portable.zip
           New-Item -ItemType Directory -Force out | Out-Null
-          Move-Item dist\Mireille-Tuto-Windows-Installateur.exe, dist\Mireille-Tuto-Windows-Portable.zip out\
+          Move-Item dist\Equation-Geographique-Windows-Installateur.exe, dist\Equation-Geographique-Windows-Portable.zip out\
 
       - name: Empaqueter (macOS)
         if: runner.os == 'macOS'
         run: |
           mkdir -p dmg out
-          cp -R dist/Mireille-Tuto.app dmg/
+          cp -R dist/Equation-Geographique.app dmg/
           ln -s /Applications dmg/Applications
-          hdiutil create -volname "Mireille Tuto" -srcfolder dmg -ov -format UDZO out/Mireille-Tuto-macOS.dmg
+          hdiutil create -volname "Équation géographique" -srcfolder dmg -ov -format UDZO out/Equation-Geographique-macOS.dmg
 
       - name: Empaqueter (Linux)
         if: runner.os == 'Linux'
         run: |
           bash packaging/linux/build-deb.sh "$VERSION"
-          tar -czf dist/Mireille-Tuto-Linux.tar.gz -C dist Mireille-Tuto
+          tar -czf dist/Equation-Geographique-Linux.tar.gz -C dist Equation-Geographique
           mkdir -p out
-          mv dist/Mireille-Tuto-Linux.deb dist/Mireille-Tuto-Linux.tar.gz out/
+          mv dist/Equation-Geographique-Linux.deb dist/Equation-Geographique-Linux.tar.gz out/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Mireille-Tuto-${{ matrix.name }}
+          name: Equation-Geographique-${{ matrix.name }}
           path: out/*
 
   publish:

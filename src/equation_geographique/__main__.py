@@ -1,3 +1,3 @@
-from mireille_tuto import main
+from equation_geographique import main
 
 main()

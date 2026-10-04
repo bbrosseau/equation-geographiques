@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from mireille_tuto.geo.countries import DATASET_110M, CountryAtlas
-from mireille_tuto.ui import MainWindow
+from equation_geographique.geo.countries import DATASET_110M, CountryAtlas
+from equation_geographique.ui import MainWindow
 
 
 @pytest.fixture(scope="module")
@@ -71,7 +71,7 @@ def test_select_country_updates_panel(window):
 
 
 def test_algebra_mode_flow_keeps_manual_points(window):
-    from mireille_tuto.ui.map_canvas import MapMode
+    from equation_geographique.ui.map_canvas import MapMode
 
     window.map.clear_points()
     enter_algebra(window)
@@ -247,7 +247,7 @@ def test_algebra_panel_neurons_selector(window):
 
 
 def test_window_icon(window):
-    from mireille_tuto.ui import get_app_icon
+    from equation_geographique.ui import get_app_icon
 
     icon = window.windowIcon()
     assert not icon.isNull()

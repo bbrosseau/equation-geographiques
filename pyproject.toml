@@ -1,5 +1,5 @@
 [project]
-name = "mireille-tuto"
+name = "equation-geographique"
 version = "0.1.0"
 description = "Application interactive pour apprendre l'algèbre et le ML : carte du monde"
 readme = "README.md"
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mireille-tuto = "mireille_tuto:main"
+equation-geographique = "equation_geographique:main"
 
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]

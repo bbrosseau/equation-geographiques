@@ -23,9 +23,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from mireille_tuto.geo.countries import Country
-from mireille_tuto.geo.sampling import TARGET, LabeledSample
-from mireille_tuto.ml import (
+from equation_geographique.geo.countries import Country
+from equation_geographique.geo.sampling import TARGET, LabeledSample
+from equation_geographique.ml import (
     PRESET_FORMULAS,
     PRESETS_BY_MODE,
     TRANSFORMS,

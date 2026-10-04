@@ -1,7 +1,7 @@
 import pytest
 
-from mireille_tuto.geo import CountryAtlas, MapPoint, format_coords
-from mireille_tuto.geo.countries import DATASET_110M
+from equation_geographique.geo import CountryAtlas, MapPoint, format_coords
+from equation_geographique.geo.countries import DATASET_110M
 
 
 @pytest.fixture(scope="module")

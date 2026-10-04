@@ -1,4 +1,4 @@
-"""Générateur du logo et icône de l'application Mireille Tuto."""
+"""Générateur du logo et icône de l'application Équation géographique."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ _CACHED_ICON: QIcon | None = None
 
 
 def render_app_pixmap(size: int = 256) -> QPixmap:
-    """Dessine le logo de l'application Mireille Tuto :
+    """Dessine le logo de l'application Équation géographique :
     
     Un globe terrestre stylisé bleu océan avec continents émeraude,
     le Japon mis en valeur en rouge corail, et une frontière de décision

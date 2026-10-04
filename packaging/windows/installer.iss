@@ -1,4 +1,4 @@
-; Installateur Windows (Inno Setup 6), à partir de dist\Mireille-Tuto produit par PyInstaller.
+﻿; Installateur Windows (Inno Setup 6), à partir de dist\Equation-Geographique produit par PyInstaller.
 ; Construction : ISCC.exe /DAppVersion=1.0.0 packaging\windows\installer.iss
 
 #ifndef AppVersion
@@ -7,11 +7,11 @@
 
 [Setup]
 AppId={{6B1E4F0A-2C7D-4E58-9A3B-5D8C1F2E7A90}
-AppName=Mireille Tuto
+AppName=Équation géographique
 AppVersion={#AppVersion}
 AppPublisher=Bernard Brosseau-Villeneuve
-DefaultDirName={autopf}\Mireille Tuto
-DefaultGroupName=Mireille Tuto
+DefaultDirName={autopf}\Équation géographique
+DefaultGroupName=Équation géographique
 DisableProgramGroupPage=yes
 ; Installation pour l'utilisateur courant, sans droits administrateur.
 PrivilegesRequired=lowest
@@ -19,9 +19,9 @@ PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\..\dist
-OutputBaseFilename=Mireille-Tuto-Windows-Installateur
-SetupIconFile=..\..\src\mireille_tuto\data\icon.ico
-UninstallDisplayIcon={app}\Mireille-Tuto.exe
+OutputBaseFilename=Equation-Geographique-Windows-Installateur
+SetupIconFile=..\..\src\equation_geographique\data\icon.ico
+UninstallDisplayIcon={app}\Equation-Geographique.exe
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -33,11 +33,11 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "..\..\dist\Mireille-Tuto\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\dist\Equation-Geographique\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\Mireille Tuto"; Filename: "{app}\Mireille-Tuto.exe"
-Name: "{autodesktop}\Mireille Tuto"; Filename: "{app}\Mireille-Tuto.exe"; Tasks: desktopicon
+Name: "{autoprograms}\Équation géographique"; Filename: "{app}\Equation-Geographique.exe"
+Name: "{autodesktop}\Équation géographique"; Filename: "{app}\Equation-Geographique.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\Mireille-Tuto.exe"; Description: "{cm:LaunchProgram,Mireille Tuto}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\Equation-Geographique.exe"; Description: "{cm:LaunchProgram,Équation géographique}"; Flags: nowait postinstall skipifsilent

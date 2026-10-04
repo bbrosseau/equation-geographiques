@@ -1,7 +1,7 @@
-from mireille_tuto.geo.coords import format_coords, format_lat, format_lon
-from mireille_tuto.geo.countries import Country, CountryAtlas
-from mireille_tuto.geo.points import MapPoint
-from mireille_tuto.geo.sampling import LabeledSample, label_points, sample_view
+from equation_geographique.geo.coords import format_coords, format_lat, format_lon
+from equation_geographique.geo.countries import Country, CountryAtlas
+from equation_geographique.geo.points import MapPoint
+from equation_geographique.geo.sampling import LabeledSample, label_points, sample_view
 
 __all__ = [
     "Country",

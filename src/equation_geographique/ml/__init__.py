@@ -1,4 +1,4 @@
-from mireille_tuto.ml.formula import (
+from equation_geographique.ml.formula import (
     PRESET_FORMULAS,
     PRESETS_BY_MODE,
     CoordMode,
@@ -8,8 +8,8 @@ from mireille_tuto.ml.formula import (
     compute_metrics,
     evaluate_formula,
 )
-from mireille_tuto.ml.trainer import LeastSquaresTrainer, TrainingMetrics
-from mireille_tuto.ml.transforms import (
+from equation_geographique.ml.trainer import LeastSquaresTrainer, TrainingMetrics
+from equation_geographique.ml.transforms import (
     TRANSFORMS,
     FeatureTransform,
     between,

@@ -9,19 +9,19 @@ import sys
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
-from mireille_tuto.geo.countries import DATASET_50M, DATASET_110M, CountryAtlas
-from mireille_tuto.ui import MainWindow, get_app_icon
+from equation_geographique.geo.countries import DATASET_50M, DATASET_110M, CountryAtlas
+from equation_geographique.ui import MainWindow, get_app_icon
 
 
 def main(argv: list[str] | None = None) -> int:
     if sys.platform == "win32":
         try:
             import ctypes
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("mireille_tuto.app")
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("equation_geographique.app")
         except Exception:
             pass
 
-    parser = argparse.ArgumentParser(prog="mireille-tuto")
+    parser = argparse.ArgumentParser(prog="equation-geographique")
     parser.add_argument(
         "--simple", action="store_true",
         help="frontières moins détaillées (1:110m), plus rapides à afficher",
@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     args, qt_args = parser.parse_known_args(argv if argv is not None else sys.argv[1:])
 
     app = QApplication([sys.argv[0], *qt_args])
-    app.setApplicationName("Mireille Tuto")
+    app.setApplicationName("Équation géographique")
     app.setWindowIcon(get_app_icon())
 
     # Ctrl+C dans la console ferme l'application. La boucle Qt ne rend jamais la main à

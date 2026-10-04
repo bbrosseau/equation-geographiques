@@ -15,7 +15,7 @@ from shapely.geometry.polygon import orient
 
 import sys
 
-from mireille_tuto.geo.coords import wrap_lon
+from equation_geographique.geo.coords import wrap_lon
 
 DATA_DIR = (
     Path(sys._MEIPASS) / "data"

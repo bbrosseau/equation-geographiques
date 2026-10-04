@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from mireille_tuto.geo.sampling import TARGET, LabeledSample
-from mireille_tuto.ml.formula import compute_coord_vars
-from mireille_tuto.ml.transforms import FeatureTransform
+from equation_geographique.geo.sampling import TARGET, LabeledSample
+from equation_geographique.ml.formula import compute_coord_vars
+from equation_geographique.ml.transforms import FeatureTransform
 
 
 @dataclass

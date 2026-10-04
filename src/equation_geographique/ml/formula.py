@@ -14,8 +14,8 @@ from enum import Enum
 
 import numpy as np
 
-from mireille_tuto.geo.sampling import TARGET, LabeledSample
-from mireille_tuto.ml.transforms import (
+from equation_geographique.geo.sampling import TARGET, LabeledSample
+from equation_geographique.ml.transforms import (
     between,
     bucket,
     clamp,
